@@ -27,21 +27,26 @@ def save_goal(date, goal, tasks):
     conn.close()
 
 def generate_voice(text, speaker_id):
+    # VOICEVOXクラウドAPI（TTS Quest V3）への接続エンドポイント
+    api_url = "https://api.tts.quest/v3/voicevox/synthesis"
+    params = {
+        "text": text,
+        "speaker": speaker_id
+    }
+    
     try:
-        query_res = requests.post(
-            f"{VOICEVOX_URL}/audio_query",
-            params={"text": text, "speaker": speaker_id}
-        )
-        query_res.raise_for_status()
-        synth_res = requests.post(
-            f"{VOICEVOX_URL}/synthesis",
-            params={"speaker": speaker_id},
-            json=query_res.json()
-        )
-        synth_res.raise_for_status()
-        return synth_res.content
+        # クラウドAPIへ音声合成をリクエスト
+        response = requests.get(api_url, params=params)
+        response.raise_for_status()
+        
+        # 生成された音声データのダウンロードURLを取得し、音声本体を抽出
+        audio_url = response.json().get("wavDownloadUrl")
+        audio_data = requests.get(audio_url).content
+        
+        return audio_data
+        
     except requests.exceptions.RequestException:
-        st.error("[System Error] VOICEVOXとの通信に失敗しました。VOICEVOXが起動しているか確認してください。")
+        st.error("[System Error] クラウド音声エンジンの接続にタイムアウトしました。")
         return None
 
 # UI構成 (VDF仕様 - タイトル1行化対応)
